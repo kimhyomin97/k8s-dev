@@ -1,0 +1,23 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: spring-instrumentation
+  namespace: project-tmi
+  labels:
+    app: java
+spec:
+  exporter:
+    endpoint: "http://otel-collector:4317"
+  java:
+    image: ghcr.io/open-telemetry/opentelemetry-java-instrumentation:1.32.0
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: "project-tmi"
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: "http://otel-collector:4317"
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: "service.name=project-tmi,service.version=1.0.0"
+    - name: OTEL_TRACES_EXPORTER
+      value: "otlp"
+    - name: OTEL_METRICS_EXPORTER
+      value: "otlp"
