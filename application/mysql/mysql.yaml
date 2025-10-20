@@ -1,0 +1,99 @@
+# MySQL Namespace
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database
+
+# MySQL PersistentVolumeClaim
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+# MySQL ConfigMap
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: database
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS tmi;
+    USE tmi;
+    CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '1234';
+    GRANT ALL PRIVILEGES ON *.* TO 'root'@'%';
+    FLUSH PRIVILEGES;
+
+
+# MySQL Deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-database
+  namespace: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-database
+  template:
+    metadata:
+      labels:
+        app: mysql-database
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: "1234"
+            - name: MYSQL_DATABASE
+              value: "tmi"
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+            - name: mysql-init
+              mountPath: /docker-entrypoint-initdb.d
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+        - name: mysql-init
+          configMap:
+            name: mysql-config
+
+# MySQL Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-database-service
+  namespace: database
+spec:
+  selector:
+    app: mysql-database
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP

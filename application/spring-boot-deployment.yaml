@@ -1,0 +1,86 @@
+# Spring Boot Application Namespace
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: application
+
+# Spring Boot Application Deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-boot-app
+  namespace: application
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java
+  template:
+    metadata:
+      labels:
+        app: java
+        instrumentation.opentelemetry.io/inject-java: "true"
+    spec:
+      containers:
+        - name: spring-boot-app
+          image: openjdk:11-jre-slim
+          command:
+            - java
+            - -jar
+            - /app/backend-0.0.1-SNAPSHOT.jar
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://mysql-database-service.database.svc.cluster.local:3306/tmi"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "root"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "1234"
+        - name: SPRING_PROFILES_ACTIVE
+          value: "k8s"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: app-jar
+              mountPath: /app
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: app-jar
+          hostPath:
+            path: C:\Users\hyomin\Desktop\dev\k8s-dev\application\backend-0.0.1-SNAPSHOT.jar
+            type: File
+
+# Spring Boot Application Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-boot-service
+  namespace: application
+spec:
+  selector:
+    app: java
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
