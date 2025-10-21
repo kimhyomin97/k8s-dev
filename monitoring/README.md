@@ -57,3 +57,17 @@ helm show values grafana/tempo-distributed > monitoring/tempo-distributed-values
 ```bash
 helm install tempo grafana/tempo-distributed -f monitoring/tempo-distributed-values.yaml --namespace monitoring
 ```
+
+## Alloy
+
+### values 파일 생성
+
+```bash
+helm show values grafana/alloy > monitoring/alloy-values.yaml
+```
+
+### Alloy 설치
+
+```bash
+helm install alloy grafana/alloy -f monitoring/alloy-values.yaml --namespace monitoring
+```

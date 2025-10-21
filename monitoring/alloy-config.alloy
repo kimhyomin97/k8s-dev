@@ -1,0 +1,47 @@
+// OTLP receiver for OpenTelemetry data
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Batch processor
+otelcol.processor.batch "default" {
+  output {
+    traces  = [otelcol.exporter.otlp.tempo.input]
+    metrics = [otelcol.exporter.otlp.mimir.input]
+    logs    = [otelcol.exporter.otlp.loki.input]
+  }
+}
+
+// Export to Tempo
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "http://tempo-distributor.monitoring.svc.cluster.local:9095"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// Export to Mimir
+otelcol.exporter.otlp "mimir" {
+  client {
+    endpoint = "http://mimir-nginx.monitoring.svc.cluster.local:80/api/v1/push"
+  }
+}
+
+// Export to Loki
+otelcol.exporter.otlp "loki" {
+  client {
+    endpoint = "http://loki-gateway.monitoring.svc.cluster.local:80"
+  }
+}
